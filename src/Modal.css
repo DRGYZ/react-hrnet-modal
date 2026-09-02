@@ -1,0 +1,123 @@
+:root {
+  --hrnet-modal-backdrop: rgb(15 23 42 / 68%);
+  --hrnet-modal-surface: #ffffff;
+  --hrnet-modal-text: #172033;
+  --hrnet-modal-muted: #526078;
+  --hrnet-modal-border: #dce2eb;
+  --hrnet-modal-focus: #315b2c;
+  --hrnet-modal-radius: 1rem;
+  --hrnet-modal-shadow: 0 24px 70px rgb(15 23 42 / 30%);
+}
+
+.hrnet-modal__overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--hrnet-modal-backdrop);
+  animation: hrnet-modal-fade-in 160ms ease-out;
+}
+
+.hrnet-modal {
+  width: min(100%, 34rem);
+  max-height: min(90vh, 44rem);
+  overflow-y: auto;
+  color: var(--hrnet-modal-text);
+  background: var(--hrnet-modal-surface);
+  border: 1px solid var(--hrnet-modal-border);
+  border-radius: var(--hrnet-modal-radius);
+  box-shadow: var(--hrnet-modal-shadow);
+  animation: hrnet-modal-rise-in 180ms ease-out;
+}
+
+.hrnet-modal:focus {
+  outline: none;
+}
+
+.hrnet-modal__header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.25rem 1.25rem 0;
+}
+
+.hrnet-modal__title {
+  margin: 0;
+  font:
+    700 1.25rem/1.35 system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  letter-spacing: -0.015em;
+}
+
+.hrnet-modal__close {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  padding: 0;
+  color: var(--hrnet-modal-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.hrnet-modal__close:hover {
+  color: var(--hrnet-modal-text);
+  background: #f1f4f8;
+}
+
+.hrnet-modal__close:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--hrnet-modal-focus) 35%, white);
+  outline-offset: 2px;
+}
+
+.hrnet-modal__close svg {
+  fill: currentColor;
+}
+
+.hrnet-modal__content {
+  padding: 1rem 1.25rem 1.5rem;
+  font:
+    400 1rem/1.6 system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.hrnet-modal__content > :first-child {
+  margin-top: 0;
+}
+
+.hrnet-modal__content > :last-child {
+  margin-bottom: 0;
+}
+
+@keyframes hrnet-modal-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes hrnet-modal-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hrnet-modal__overlay,
+  .hrnet-modal {
+    animation: none;
+  }
+}

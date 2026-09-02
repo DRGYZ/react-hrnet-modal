@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+output
+*.tgz
+.DS_Store
+*.log
+.idea
+.vscode
