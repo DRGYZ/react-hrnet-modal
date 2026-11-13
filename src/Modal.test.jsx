@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createRef } from "react";
+import { createRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Modal } from "./Modal";
 describe("Modal", () => {
@@ -128,5 +128,64 @@ describe("Modal", () => {
     );
     expect(screen.getByRole("button", { name: "Confirm" })).toHaveFocus();
     expect(document.body).toHaveStyle({ overflow: "hidden" });
+  });
+
+  it("skips hidden and disabled descendants and restores focus from outside", async () => {
+    const user = userEvent.setup();
+    const hiddenFocus = createRef();
+    render(
+      <>
+        <button type="button">Outside</button>
+        <Modal isOpen title="Test focus" onClose={vi.fn()} initialFocusRef={hiddenFocus}>
+          <div style={{ display: "none" }}><button ref={hiddenFocus}>Hidden</button></div>
+          <fieldset disabled><input aria-label="Disabled by fieldset" /></fieldset>
+          <button tabIndex={-2}>Programmatic focus only</button>
+          <button type="button">Confirm</button>
+        </Modal>
+      </>,
+    );
+    const close = screen.getByRole("button", { name: "Close dialog" });
+    const confirm = screen.getByRole("button", { name: "Confirm" });
+    expect(close).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(confirm).toHaveFocus();
+    await user.tab();
+    expect(close).toHaveFocus();
+    screen.getByRole("button", { name: "Outside" }).focus();
+    expect(close).toHaveFocus();
+  });
+
+  it("closes only the top dialog and keeps scrolling locked for the lower one", async () => {
+    const user = userEvent.setup();
+    function StackedDialogs() {
+      const [parent, setParent] = useState(false);
+      const [child, setChild] = useState(false);
+      return (
+        <>
+          <button onClick={() => setParent(true)}>Open first</button>
+          <Modal isOpen={parent} title="First" onClose={() => setParent(false)}>
+            <button onClick={() => setChild(true)}>Open second</button>
+          </Modal>
+          <Modal isOpen={child} title="Second" onClose={() => setChild(false)}>
+            <button>Confirm</button>
+          </Modal>
+        </>
+      );
+    }
+    render(<StackedDialogs />);
+    const firstOpener = screen.getByRole("button", { name: "Open first" });
+    await user.click(firstOpener);
+    const secondOpener = screen.getByRole("button", { name: "Open second" });
+    await user.click(secondOpener);
+    expect(screen.getByRole("dialog", { name: "Second" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Second" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "First" })).toBeInTheDocument();
+    expect(secondOpener).toHaveFocus();
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(firstOpener).toHaveFocus();
+    expect(document.body.style.overflow).toBe("");
   });
 });
