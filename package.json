@@ -1,6 +1,6 @@
 {
   "name": "@drgyz/hrnet-accessible-modal",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "An accessible React JavaScript modal converted from the jQuery Modal behavior used by HRnet.",
   "type": "module",
   "files": [

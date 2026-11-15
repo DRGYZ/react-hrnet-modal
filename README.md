@@ -20,7 +20,7 @@ project requirements.
 Install the public Git tag without configuring a package registry:
 
 ```bash
-npm install 'git+https://github.com/DRGYZ/react-hrnet-modal.git#v0.2.0'
+npm install 'git+https://github.com/DRGYZ/react-hrnet-modal.git#v0.2.1'
 ```
 
 The same release is available on [GitHub Packages](https://github.com/DRGYZ/react-hrnet-modal/pkgs/npm/hrnet-accessible-modal).
