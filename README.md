@@ -17,6 +17,14 @@ project requirements.
 
 ## Installation
 
+Install the public Git tag without configuring a package registry:
+
+```bash
+npm install 'git+https://github.com/DRGYZ/react-hrnet-modal.git#v0.2.0'
+```
+
+The same release is available on [GitHub Packages](https://github.com/DRGYZ/react-hrnet-modal/pkgs/npm/hrnet-accessible-modal).
+
 GitHub Packages requires an authenticated GitHub token, including for public
 npm packages. Add a classic personal access token with `read:packages` to your
 user-level `.npmrc` without committing the token:
@@ -83,7 +91,8 @@ never mutates application state itself.
 - Renders `role="dialog"` and `aria-modal="true"`.
 - Connects the visible title through `aria-labelledby`.
 - Moves focus inside the dialog when it opens.
-- Traps Tab and Shift+Tab inside the active dialog.
+- Traps Tab and Shift+Tab inside the active dialog and skips hidden and disabled controls.
+- When dialogs are stacked, Escape applies to the top dialog and scrolling stays locked until all dialogs close.
 - Restores focus to the previously focused element after closing.
 - Supports Escape and backdrop closing when enabled.
 - Locks background page scrolling while open.
@@ -112,13 +121,17 @@ component-specific selectors.
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
 npm run check
 ```
 
 `npm run check` runs linting, tests, and the production library build.
 `prepublishOnly` runs the same gate before publication.
+
+To try the keyboard behavior in the local demo, tab to **Create employee** and
+press Enter. Focus moves to **Continue**. Tab and Shift+Tab cycle through the
+dialog controls. Escape closes the dialog and returns focus to **Create employee**.
 
 ## Package output
 

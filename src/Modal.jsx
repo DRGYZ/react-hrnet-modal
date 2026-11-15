@@ -4,22 +4,42 @@ import "./Modal.css";
 const FOCUSABLE_SELECTOR = [
   "a[href]",
   "area[href]",
-  "button:not([disabled])",
-  "input:not([disabled]):not([type='hidden'])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
+  "button",
+  "input:not([type='hidden'])",
+  "select",
+  "textarea",
   "iframe",
   "object",
   "embed",
   "[contenteditable='true']",
-  "[tabindex]:not([tabindex='-1'])",
+  "[tabindex]",
 ].join(",");
+const openDialogs = [];
+let originalOverflow;
+
+function isVisible(element) {
+  const view = element.ownerDocument.defaultView;
+  if (view.getComputedStyle(element).visibility !== "visible") return false;
+  for (let current = element; current; current = current.parentElement) {
+    if (current.matches("[hidden], [inert], [aria-hidden='true']")) return false;
+    if (view.getComputedStyle(current).display === "none") return false;
+  }
+  return true;
+}
+
 function getFocusableElements(container) {
-  return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
-    (element) =>
-      element.getAttribute("aria-hidden") !== "true" &&
-      element.getAttribute("hidden") === null,
-  );
+  return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR))
+    .filter((element) => element.tabIndex >= 0 && !element.matches(":disabled") && isVisible(element))
+    .sort((a, b) => (a.tabIndex || Infinity) - (b.tabIndex || Infinity));
+}
+
+function focusInside(dialog, target) {
+  if (target && dialog.contains(target) && isVisible(target) && !target.matches(":disabled")) {
+    target.focus();
+  }
+  if (!dialog.contains(document.activeElement)) {
+    (getFocusableElements(dialog)[0] ?? dialog).focus();
+  }
 }
 function combineClassNames(...classNames) {
   return classNames.filter(Boolean).join(" ");
@@ -55,11 +75,10 @@ export function Modal({
 }) {
   const titleId = useId();
   const dialogRef = useRef(null);
-  const previouslyFocusedElementRef = useRef(null);
-  const onCloseRef = useRef(onClose);
+  const optionsRef = useRef({ onClose, closeOnEscape, initialFocusRef });
   useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
+    optionsRef.current = { onClose, closeOnEscape, initialFocusRef };
+  }, [onClose, closeOnEscape, initialFocusRef]);
   useEffect(() => {
     if (!isOpen || typeof document === "undefined") {
       return;
@@ -68,19 +87,16 @@ export function Modal({
     if (!dialog) {
       return;
     }
-    previouslyFocusedElementRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const previousBodyOverflow = document.body.style.overflow;
+    const entry = { dialog, opener: document.activeElement };
+    if (!openDialogs.length) originalOverflow = document.body.style.overflow;
+    openDialogs.push(entry);
     document.body.style.overflow = "hidden";
-    const focusTarget =
-      initialFocusRef?.current ?? getFocusableElements(dialog)[0] ?? dialog;
-    focusTarget.focus();
+    focusInside(dialog, optionsRef.current.initialFocusRef?.current);
     const handleKeyDown = (event) => {
-      if (event.key === "Escape" && closeOnEscape) {
+      if (openDialogs.at(-1) !== entry || event.defaultPrevented) return;
+      if (event.key === "Escape" && optionsRef.current.closeOnEscape) {
         event.preventDefault();
-        onCloseRef.current();
+        optionsRef.current.onClose();
         return;
       }
       if (event.key !== "Tab") {
@@ -95,30 +111,47 @@ export function Modal({
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
       const activeElement = document.activeElement;
+      const activeIsTabbable = focusableElements.includes(activeElement);
       if (
         event.shiftKey &&
-        (activeElement === firstElement || !dialog.contains(activeElement))
+        (activeElement === firstElement || !activeIsTabbable)
       ) {
         event.preventDefault();
         lastElement.focus();
-      } else if (!event.shiftKey && activeElement === lastElement) {
+      } else if (!event.shiftKey && (activeElement === lastElement || !activeIsTabbable)) {
         event.preventDefault();
         firstElement.focus();
       }
     };
+    const handleFocusIn = (event) => {
+      if (openDialogs.at(-1) === entry && !dialog.contains(event.target)) {
+        focusInside(dialog);
+      }
+    };
     document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("focusin", handleFocusIn);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousBodyOverflow;
-      previouslyFocusedElementRef.current?.focus();
+      document.removeEventListener("focusin", handleFocusIn);
+      const index = openDialogs.indexOf(entry);
+      const wasTopmost = index === openDialogs.length - 1;
+      for (const other of openDialogs.slice(index + 1)) {
+        if (dialog.contains(other.opener)) other.opener = entry.opener;
+      }
+      openDialogs.splice(index, 1);
+      const activeDialog = openDialogs.at(-1)?.dialog;
+      if (!activeDialog) document.body.style.overflow = originalOverflow;
+      if (wasTopmost && activeDialog) focusInside(activeDialog, entry.opener);
+      else if (wasTopmost && entry.opener?.isConnected) entry.opener.focus();
     };
-  }, [closeOnEscape, initialFocusRef, isOpen]);
+  }, [isOpen]);
   if (!isOpen || typeof document === "undefined") {
     return null;
   }
   const handleBackdropMouseDown = (event) => {
-    if (closeOnBackdrop && event.target === event.currentTarget) {
-      onCloseRef.current();
+    if (closeOnBackdrop && event.target === event.currentTarget && openDialogs.at(-1)?.dialog === dialogRef.current) {
+      event.preventDefault();
+      onClose();
     }
   };
   return createPortal(
@@ -144,7 +177,7 @@ export function Modal({
               className="hrnet-modal__close"
               type="button"
               aria-label={closeLabel}
-              onClick={() => onCloseRef.current()}
+              onClick={onClose}
             >
               <svg
                 viewBox="0 0 24 24"
