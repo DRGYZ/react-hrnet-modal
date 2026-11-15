@@ -51,7 +51,7 @@ describe("Modal", () => {
     expect(overlay).not.toBeNull();
     fireEvent.mouseDown(panel);
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.mouseDown(overlay);
+    expect(fireEvent.mouseDown(overlay)).toBe(false);
     expect(onClose).toHaveBeenCalledOnce();
   });
   it("honors disabled backdrop and Escape closing", async () => {

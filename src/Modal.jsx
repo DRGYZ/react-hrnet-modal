@@ -150,6 +150,7 @@ export function Modal({
   }
   const handleBackdropMouseDown = (event) => {
     if (closeOnBackdrop && event.target === event.currentTarget && openDialogs.at(-1)?.dialog === dialogRef.current) {
+      event.preventDefault();
       onClose();
     }
   };
